@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.extensions import db
 from app.models import Post, User
 
@@ -20,7 +21,9 @@ def get_post(post_id):
 
 # 3. create post: POST /api/posts
 @posts_bp.route("", methods=['POST'])
+@jwt_required()
 def create_post():
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
 
     #basic payload validation
@@ -52,10 +55,15 @@ def create_post():
 
 # 4. update post: PUT /api/posts/<id>
 @posts_bp.route("<int:post_id>", methods=["PUT"])
+@jwt_required()
 def update_post(post_id):
+    current_user_id = int(get_jwt_identity())
     post = Post.query.get(post_id)
     if not post:
         return jsonify({"error": f"Post with id {post_id} not found"}), 404
+
+    if post.user_id != current_user_id:
+        return jsonify({"error": f"Post with id  {post_id} not found"}), 403
 
     data = request.get_json()
     if not data:
@@ -74,10 +82,15 @@ def update_post(post_id):
 
 # 5. DELETE post: DELETE /api/posts/<id>
 @posts_bp.route("<int:post_id>", methods=["DELETE"])
+@jwt_required()
 def delete_post(post_id):
+    current_user_id = int(get_jwt_identity())
     post = Post.query.get(post_id)
     if not post:
         return jsonify({"error": f"Post with id {post_id} not found"}), 400
+
+    if post.user_id != current_user_id:
+        return jsonify({"error": "Forbidden: You are not authorized to delet this post"}), 403
 
     try:
         db.session.delete(post)

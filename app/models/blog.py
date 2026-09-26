@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from werkzeug.security import generate_password_hash, check_password_hash
 from app.extensions import db
 
 class User(db.Model):
@@ -18,6 +19,20 @@ class User(db.Model):
     # backref='author' allows you to access the User object from a Post via `post.author`.
     # cascade='all, delete-orphan' ensures deleting a user also deletes their posts.
     posts = db.relationship("Post", backref="author", lazy=True, cascade="all, delete-orphan")
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "email": self.email,
+            "created_at": self.created_at.isoformat()
+        }
 
     def __repr__(self):
         return f"<User {self.username}>"
